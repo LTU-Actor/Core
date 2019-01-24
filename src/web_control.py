@@ -3,11 +3,14 @@
 import rospy
 import rospkg
 import psutil
+import os
 
 rospack = rospkg.RosPack()
 
+web_env = os.environ.copy()
+web_env['ACTOR_ESTOP_STATE'] = rospy.get_param('~estop_state', '/estop/state')
 web_cwd = rospack.get_path('ltu_actor_core') + '/web'
-web_server = psutil.Popen('npm run start', shell=True, cwd=web_cwd)
+web_server = psutil.Popen('npm run start', shell=True, cwd=web_cwd, env=web_env)
 
 
 def on_shutdown():
