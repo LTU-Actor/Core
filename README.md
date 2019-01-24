@@ -40,5 +40,12 @@ catkin_make
 
 ### Running
 
-TBD. roslaunch from vehicle packages
+This is not final.
 
+Launch the rosbridge, video server, empty router, and simple webpage with:
+
+```sh
+roslaunch ltu_actor_core core.launch
+```
+
+then view the page <http://localhost:3000/>

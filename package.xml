@@ -15,6 +15,11 @@
   <depend>std_msgs</depend>
   <depend>lua5.2-dev</depend> <!-- No non-dev version in rosdep -->
 
+  <exec_depend>python-psutil</exec_depend>
+  <exec_depend>python-rospkg</exec_depend>
+  <exec_depend>web_video_server</exec_depend>
+  <exec_depend>rosbridge_server</exec_depend>
+
   <!--
   Ubuntu 16.04 ships nodejs 4.2.6...
   A more up to date version from a ppa is needed.
