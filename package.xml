@@ -1,0 +1,26 @@
+<package format="2">
+  <name>ltu_actor_core</name>
+  <version>0.0.1</version>
+  <description>
+    This package provides the route system and webpage for LTU's actor 2019 platform. It incorperates outputs from the rest of the actor packages.
+  </description>
+  <maintainer email="mpleune@ltu.edu">Mitchell Pleune</maintainer>
+  <license>UNLICENSED</license>
+  <url>https://github.com/LTU-Actor/Core</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>lua5.2-dev</depend> <!-- No non-dev version in rosdep -->
+
+  <!--
+  Ubuntu 16.04 ships nodejs 4.2.6...
+  A more up to date version from a ppa is needed.
+
+  Recomended v10.x
+  See here: https://github.com/nodesource/distributions/blob/master/README.md#debinstall
+  -->
+  <exec_depend>nodejs</exec_depend>
+</package>
