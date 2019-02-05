@@ -29,10 +29,8 @@ target_link_libraries(router ${catkin_LIBRARIES} ${LUA_LIBRARIES})
 
 add_dependencies(router ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-# For Next.js website
-execute_process(
+add_custom_target(nextjs ALL
   COMMAND npm install
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/web/")
-execute_process(
   COMMAND npm run build
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/web/")
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/web/"
+)
