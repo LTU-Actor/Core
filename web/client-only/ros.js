@@ -1,8 +1,5 @@
 var roslib = require('roslib')
-
-var ros = new roslib.Ros({
-  url : 'ws://localhost:8080/'
-})
+var ros = new roslib.Ros({url: 'ws://localhost:8080/'})
 
 ros.on('connection', function() {
   console.log('roslib: Connected to websocket server.');

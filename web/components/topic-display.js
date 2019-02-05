@@ -22,7 +22,7 @@ class TopicDisplay extends Component {
     }
 
     this.state = {
-      data: 0
+      data: "Not Captured"
     }
   }
 
@@ -36,7 +36,7 @@ class TopicDisplay extends Component {
 
     var that = this;
     this.sub.subscribe(function(msg) {
-      that.setState({data: msg.data});
+      that.setState({data: String(msg.data)});
     })
   }
 

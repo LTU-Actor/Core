@@ -118,7 +118,7 @@ IncludeCategories:
   - Regex:           '.*'
     Priority:        1
 IndentCaseLabels: true
-IndentWidth:     4
+IndentWidth:     2
 IndentWrappedFunctionNames: false
 KeepEmptyLinesAtTheStartOfBlocks: false
 MacroBlockBegin: ''
