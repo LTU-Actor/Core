@@ -19,7 +19,7 @@ catkin_package(
 )
 
 add_executable(router
-  src/router.cpp
+  src/router/main.cpp
 )
 
 include_directories(${catkin_INCLUDE_DIRS})
