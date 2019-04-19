@@ -1,0 +1,5 @@
+<launch>
+  <group ns="core">
+    <node name="web_control" pkg="ltu_actor_core" type="web_control.py" />
+  </group>
+</launch>
