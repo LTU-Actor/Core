@@ -9,6 +9,8 @@ rospack = rospkg.RosPack()
 
 web_env = os.environ.copy()
 web_env['ACTOR_ESTOP_TOPIC'] = rospy.get_param('~estop_state', '/estop/state')
+web_env['ACTOR_ESTOP_STOP'] = rospy.get_param('~estop_stop', '/estop/stop')
+web_env['ACTOR_ESTOP_RESUME'] = rospy.get_param('~estop_resume', '/estop/resume')
 web_env['PORT_ROSBRIDGE'] = rospy.get_param('~rosbridge_port', '8090')
 web_env['PORT_VIDEO'] = rospy.get_param('~video_port', '8091')
 web_env['ROS_NS'] = rospy.get_namespace()

@@ -20,6 +20,9 @@
   <exec_depend>web_video_server</exec_depend>
   <exec_depend>rosbridge_server</exec_depend>
 
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
   <!--
   Ubuntu 16.04 ships nodejs 4.2.6...
   A more up to date version from a ppa is needed.

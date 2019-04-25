@@ -21,6 +21,8 @@ module.exports = withCSS({
   },
   publicRuntimeConfig: {
     estop_topic: process.env.ACTOR_ESTOP_TOPIC,
+    estop_stop: process.env.ACTOR_ESTOP_STOP,
+    estop_resume: process.env.ACTOR_ESTOP_RESUME,
     port_video: process.env.PORT_VIDEO,
     port_rosbridge: process.env.PORT_ROSBRIDGE,
     ros_ns: process.env.ROS_NS
