@@ -1,7 +1,7 @@
 if(typeof window !== 'undefined') {
-  let server = 'ws://' + window.location.hostname + ':8080'
+  let server = 'ws://' + window.location.hostname + ':8090'
   let roslib = require('roslib')
-  let ros = new roslib.Ros({url: 'ws://localhost:8080/'})
+  let ros = new roslib.Ros({url: server})
 
   ros.on('connection', function() {
     console.log('roslib: Connected to websocket server.');

@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { Component } from 'react'
 import Link from 'next/link'
 
 class TopicDisplay extends Component {
@@ -27,16 +27,16 @@ class TopicDisplay extends Component {
   }
 
   componentDidMount() {
-    var that = this;
+    var that = this
     this.sub = new this.roslib.Topic({
       ros: this.ros,
       name: that.props.topic,
       messageType: that.props.type
     })
 
-    var that = this;
+    var that = this
     this.sub.subscribe(function(msg) {
-      that.setState({data: String(msg.data)});
+      that.setState({data: String(msg.data)})
     })
   }
 

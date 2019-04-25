@@ -12,7 +12,7 @@ export default () => (
       <Col>
         <TopicDisplay name="Topic from router" topic="/router" type="std_msgs/Int64" />
         <TopicDisplay name="estop state manual" topic={publicRuntimeConfig.estop_topic} type="std_msgs/Bool" />
-        <TopicDisplayVideo topic="/videotopic" />
+        <TopicDisplayVideo topic="/camera/image_color" />
       </Col>
     </Row>
   </Container>
