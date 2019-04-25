@@ -1,5 +1,7 @@
 import React, { Component } from 'react'
 import Link from 'next/link'
+import ros from 'clientOnly/ros.js'
+import roslib from 'roslib'
 
 class TopicDisplay extends Component {
   render() {
@@ -15,12 +17,6 @@ class TopicDisplay extends Component {
   constructor(props) {
     super(props)
 
-    // Import some stuff client-only
-    if(typeof window !== 'undefined' && window.document && window.document.createElement) {
-      this.roslib = require('roslib')
-      this.ros = require('clientOnly/ros.js')
-    }
-
     this.state = {
       data: "Not Captured"
     }
@@ -28,8 +24,8 @@ class TopicDisplay extends Component {
 
   componentDidMount() {
     var that = this
-    this.sub = new this.roslib.Topic({
-      ros: this.ros,
+    this.sub = new roslib.Topic({
+      ros: ros,
       name: that.props.topic,
       messageType: that.props.type
     })

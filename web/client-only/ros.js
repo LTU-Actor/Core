@@ -1,7 +1,12 @@
+import getConfig from 'next/config'
+import roslib from 'roslib'
+
+const {publicRuntimeConfig} = getConfig();
+
+var ros = undefined
 if(typeof window !== 'undefined') {
-  let server = 'ws://' + window.location.hostname + ':8090'
-  let roslib = require('roslib')
-  let ros = new roslib.Ros({url: server})
+  let server = `ws://${window.location.hostname}:${publicRuntimeConfig.port_rosbridge}`
+  ros = new roslib.Ros({url: server})
 
   ros.on('connection', function() {
     console.log('roslib: Connected to websocket server.');
@@ -14,8 +19,6 @@ if(typeof window !== 'undefined') {
   ros.on('close', function() {
     console.log('roslib: Connection to websocket server closed.');
   })
-
-  module.exports = ros
-} else {
-  module.exports = undefined
 }
+
+export default ros

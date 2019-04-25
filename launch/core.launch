@@ -1,7 +1,11 @@
 <launch>
   <group ns="core">
     <node name="router" pkg="ltu_actor_core" type="router" />
-    <node name="web_control" pkg="ltu_actor_core" type="web_control.py" />
+
+    <node name="web_control" pkg="ltu_actor_core" type="web_control.py">
+      <param name="~rosbridge_port" value="8090" />
+      <param name="~video_port" value="8091" />
+    </node>
 
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
       <arg name="port" value="8090"/>

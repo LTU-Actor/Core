@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 
-const port = 8091
+import getConfig from 'next/config'
+const {publicRuntimeConfig} = getConfig();
 
 class TopicDisplayVideo extends Component {
   render() {
@@ -19,7 +20,7 @@ class TopicDisplayVideo extends Component {
 
   componentDidMount() {
     if(typeof window !== 'undefined' && window.document && window.document.createElement) {
-      this.setState({server: `${window.location.hostname}:${port}`})
+      this.setState({server: `${window.location.hostname}:${publicRuntimeConfig.port_video}`})
     }
   }
 }
