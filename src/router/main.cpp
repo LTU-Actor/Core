@@ -130,14 +130,6 @@ get_route_list_cb(ltu_actor_core::GetRouteList::Request &req, ltu_actor_core::Ge
 bool
 load_route_cb(ltu_actor_core::LoadRoute::Request &req, ltu_actor_core::LoadRoute::Response &res)
 {
-    // simple reload if we already have it
-    // good for "init" filename
-    if(req.filename == route_filename)
-    {
-        load_next = true;
-        return true;
-    }
-
     std::string filename = script_folder + req.filename;
     std::string contents = load_file(filename);
 

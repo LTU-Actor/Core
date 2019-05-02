@@ -23,6 +23,7 @@ class RouteSelect extends Component {
             })}
           </select>
           <Button className='col-auto mr-1' onClick={this.save}>Save</Button>
+          <Button className='col-auto mr-1' color='primary' onClick={this.load}>Load</Button>
           <Button className='col-auto mr-1' color='success' onClick={this.apply}>Apply</Button>
         </Row>
       </div>
@@ -39,6 +40,7 @@ class RouteSelect extends Component {
     }
 
     this.save = this.save.bind(this)
+    this.load = this.load.bind(this)
     this.apply = this.apply.bind(this)
     this.fileNameOnChange = this.fileNameOnChange.bind(this)
     this.routeOnChange = this.routeOnChange.bind(this)
@@ -92,6 +94,23 @@ class RouteSelect extends Component {
       if(!res.success)
         alert("Failed to apply")
     })
+  }
+
+  load() {
+    var that = this
+    var keep_going = true
+
+    this.loadRoute.callService(new roslib.ServiceRequest({
+      filename: this.state.fileName
+    }), function(res) {
+      if(!res.success) {
+        alert("Failed to load")
+        keep_going = false
+      }
+    })
+
+    if(keep_going)
+      this.refreshRoutes()
   }
 
   save() {
