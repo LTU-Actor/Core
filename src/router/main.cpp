@@ -4,6 +4,7 @@
 #include <sol/sol.hpp>
 #include <std_msgs/Bool.h>
 #include <std_srvs/Empty.h>
+#include <geometry_msgs/Twist.h>
 #include <thread>
 
 // file io
@@ -189,6 +190,17 @@ main(int argc, char **argv)
     std_msgs::Bool hb_msg;
     hb_msg.data = false;
 
+    ros::Publisher twist_out = nh.advertise<geometry_msgs::Twist>("cmd", 1);
+    ros::Subscriber twist_in;
+    ros::Timer zeros = nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &e)
+    {
+        geometry_msgs::Twist msg;
+        msg.linear.x = msg.linear.y = msg.linear.z = 0;
+        msg.angular.x = msg.angular.y = msg.angular.z = 0;
+        twist_out.publish(msg);
+    });
+    zeros.start();
+
     ros::Publisher hb = nh.advertise<std_msgs::Bool>("heartbeat", 1);
     ros::ServiceServer get_current_route = nh.advertiseService("get_current_route", &get_current_route_cb);
     ros::ServiceServer get_route_list = nh.advertiseService("get_route_list", &get_route_list_cb);
@@ -216,6 +228,24 @@ main(int argc, char **argv)
             if (elapsed >= std::chrono::milliseconds(ms)) break;
             ros::spinOnce();
             r.sleep();
+        }
+    });
+    lua.set_function("send", [&](std::string topic)
+    {
+        if(topic == "zeros" || topic == "zero")
+        {
+            twist_in = {};
+            zeros.start();
+        }
+        else
+        {
+            zeros.stop();
+            if(twist_in.getTopic() != topic)
+            {
+                boost::function<void (const geometry_msgs::Twist&)> callback =
+                [&] (const geometry_msgs::Twist& msg) {twist_out.publish(msg);};
+                twist_in = nh.subscribe<geometry_msgs::Twist>(topic, 1, callback);
+            }
         }
     });
 

@@ -8,6 +8,7 @@ find_package(catkin REQUIRED
     roscpp
     rospy
     std_msgs
+    geometry_msgs
     message_generation
 )
 
@@ -30,6 +31,7 @@ find_package(Lua 5.2 REQUIRED)
 catkin_package(
   CATKIN_DEPENDS
     std_msgs
+    geometry_msgs
     message_runtime
 )
 
