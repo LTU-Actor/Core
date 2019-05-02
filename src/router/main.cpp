@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <ros/ros.h>
 #include <sol/sol.hpp>
-#include <std_msgs/Int64.h>
+#include <std_msgs/Bool.h>
 #include <std_srvs/Empty.h>
 #include <thread>
 
@@ -157,10 +157,10 @@ main(int argc, char **argv)
     if (!ends_with(script_folder, "/")) script_folder += "/";
 
     // Hartbeat
-    std_msgs::Int64 msg;
-    msg.data = 0;
+    std_msgs::Bool hb_msg;
+    hb_msg.data = false;
 
-    ros::Publisher publisher = nh.advertise<std_msgs::Int64>("/router", 1);
+    ros::Publisher hb = nh.advertise<std_msgs::Bool>("heartbeat", 1);
     ros::ServiceServer get_current_route = nh.advertiseService("get_current_route", &get_current_route_cb);
     ros::ServiceServer get_route_list = nh.advertiseService("get_route_list", &get_route_list_cb);
     ros::ServiceServer load_route = nh.advertiseService("load_route", &load_route_cb);
@@ -169,7 +169,10 @@ main(int argc, char **argv)
     ros::ServiceClient estop = nh.serviceClient<std_srvs::Empty>("/estop/stop");
 
     lua.open_libraries();
-    lua.set_function("heartbeat", [&msg] { msg.data = (msg.data + 1) % 1000000; });
+    lua.set_function("heartbeat", [&] {
+        hb_msg.data = !hb_msg.data;
+        hb.publish(hb_msg);
+    });
     lua.set_function("spin_once", [] { ros::spinOnce(); });
     lua.set_function("estop", [&estop] {
         std_srvs::Empty e;
@@ -194,7 +197,6 @@ main(int argc, char **argv)
     while (ros::ok())
     {
         route(env);
-        publisher.publish(msg);
         ros::spinOnce();
 
         // replace the route here so the route dosen't replace itself from a spin callback
