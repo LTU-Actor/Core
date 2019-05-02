@@ -17,7 +17,7 @@ class RouteSelect extends Component {
         </Row>
         <Row>
           <Button className='col-auto' onClick={this.refreshRoutes}>&#8635;</Button>
-          <select className="col border m-1 rounded bg-light" onChange={this.fileNameOnChange}>
+          <select className="col border m-1 rounded bg-light" onChange={this.fileNameOnChange} value={this.state.fileName}>
             {this.state.routeFiles.map(function(listValue, i){
               return <option key={i}>{listValue}</option>;
             })}
@@ -133,11 +133,8 @@ class RouteSelect extends Component {
       }
     })
 
-    if(keep_going) {
-      this.getCurrentRoute.callService(new roslib.ServiceRequest({}), function(res) {
-        that.setState({fileName: res.filename, route: res.content})
-      })
-    }
+    if(keep_going)
+      this.refreshRoutes()
   }
 
   routeOnChange(e) {

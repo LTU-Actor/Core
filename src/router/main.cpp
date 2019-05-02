@@ -24,7 +24,7 @@ sol::environment env(lua);
 sol::load_result route;
 
 bool load_next = false;
-std::string route_filename;
+std::string route_filename = "init";
 std::string route_contents = "heartbeat();\nspin_for(500);";
 
 std::string script_folder;
@@ -121,12 +121,23 @@ get_route_list_cb(ltu_actor_core::GetRouteList::Request &req, ltu_actor_core::Ge
             ++it;
     }
 
+    if(std::find(res.routes.begin(), res.routes.end(), route_filename) == res.routes.end())
+        res.routes.push_back(route_filename);
+
     return true;
 }
 
 bool
 load_route_cb(ltu_actor_core::LoadRoute::Request &req, ltu_actor_core::LoadRoute::Response &res)
 {
+    // simple reload if we already have it
+    // good for "init" filename
+    if(req.filename == route_filename)
+    {
+        load_next = true;
+        return true;
+    }
+
     std::string filename = script_folder + req.filename;
     std::string contents = load_file(filename);
 
