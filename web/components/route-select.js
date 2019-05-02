@@ -96,12 +96,14 @@ class RouteSelect extends Component {
 
   save() {
     this.saveRoute.callService(new roslib.ServiceRequest({
-      filename: this.state.filename,
+      filename: this.state.fileName,
       content: this.state.route
     }), function(res) {
       if(!res.success)
         alert("Failed to save")
     })
+
+    this.apply()
   }
 
   refreshRoutes() {
@@ -123,7 +125,7 @@ class RouteSelect extends Component {
     var keep_going = true
 
     this.loadRoute.callService(new roslib.ServiceRequest({
-      filename: this.state.fileName
+      filename: e.target.value
     }), function(res) {
       if(!res.success) {
         alert("Failed to load")

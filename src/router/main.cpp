@@ -24,8 +24,8 @@ sol::environment env(lua);
 sol::load_result route;
 
 bool load_next = false;
-sol::environment next_env;
-sol::load_result next_route;
+std::string route_filename;
+std::string route_contents = "heartbeat();\nspin_for(500);";
 
 std::string script_folder;
 
@@ -57,15 +57,15 @@ get_directory_contents(const std::string &dir)
 bool
 save_file(const std::string &filename, const std::string &contents)
 {
-    int f = open(filename.c_str(), O_CREAT | O_TRUNC);
-    if (f < 0) return false;
+    int f = open(filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (f == -1) return false;
 
     size_t count = contents.length();
     const char *ptr = contents.data();
 
     while (count > 0)
     {
-        size_t num_write = write(f, ptr, count);
+        ssize_t num_write = write(f, ptr, count);
         if (num_write <= 0) break;
         ptr += num_write;
         count -= num_write;
@@ -75,11 +75,37 @@ save_file(const std::string &filename, const std::string &contents)
     return count == 0;
 }
 
+std::string
+load_file(const std::string &filename)
+{
+    int f = open(filename.c_str(), 0);
+    if (f < 0) return {};
+
+    int buf_size = getpagesize();
+    char *buf = new char[buf_size];
+
+    std::string ret;
+
+    ssize_t num_read;
+    while((num_read = read(f, buf, buf_size-1)) > 0)
+    {
+        buf[num_read] = '\0';
+        ret += std::string(buf);
+    }
+
+    // errno, dont return partial file.
+    if(num_read < 0) ret = std::string();
+
+    delete[] buf;
+    close(f);
+    return ret;
+}
+
 bool
 get_current_route_cb(ltu_actor_core::GetCurrentRoute::Request &req, ltu_actor_core::GetCurrentRoute::Response &res)
 {
-    res.filename = "basic filename";
-    res.content = "some content";
+    res.filename = route_filename;
+    res.content = route_contents;
     return true;
 }
 
@@ -101,29 +127,37 @@ get_route_list_cb(ltu_actor_core::GetRouteList::Request &req, ltu_actor_core::Ge
 bool
 load_route_cb(ltu_actor_core::LoadRoute::Request &req, ltu_actor_core::LoadRoute::Response &res)
 {
-    next_route = lua.load_file(script_folder + req.filename);
-    if (next_route.valid())
+    std::string filename = script_folder + req.filename;
+    std::string contents = load_file(filename);
+
+    if(contents.empty())
     {
-        next_env = sol::environment(lua, sol::create);
-        load_next = true;
-        res.success = true;
-    }
-    else
-    {
+        ROS_ERROR_STREAM("Failed to load file " << filename << "!");
         res.success = false;
+        return true;
     }
+
+    load_next = true;
+    res.success = true;
+    route_contents = contents;
+    route_filename = req.filename;
+
     return true;
 }
 
 bool
 save_route_cb(ltu_actor_core::SaveRoute::Request &req, ltu_actor_core::SaveRoute::Response &res)
 {
-    // don't save an invalid route!
-    sol::load_result lr = lua.load(req.content);
-    if (lr.valid())
-        res.success = save_file(req.filename, req.content);
-    else
+    if(!ends_with(req.filename, ".lua"))
+    {
         res.success = false;
+        ROS_ERROR_STREAM("Not a Lua file!");
+    }
+    else
+    {
+        res.success = save_file(script_folder + req.filename, req.content);
+        if (!res.success) ROS_ERROR_STREAM("Failed to write file!");
+    }
     return true;
 }
 
@@ -131,17 +165,9 @@ bool
 set_temporary_route_cb(ltu_actor_core::SetTemporaryRoute::Request &req,
                        ltu_actor_core::SetTemporaryRoute::Response &res)
 {
-    next_route = lua.load(req.content);
-    if (next_route.valid())
-    {
-        next_env = sol::environment(lua, sol::create);
-        load_next = true;
-        res.success = true;
-    }
-    else
-    {
-        res.success = false;
-    }
+    load_next = true;
+    res.success = true;
+    route_contents = req.content;
     return true;
 }
 
@@ -191,7 +217,7 @@ main(int argc, char **argv)
     });
 
     env = sol::environment(lua, sol::create);
-    route = lua.load("heartbeat();spin_for(500);");
+    route = lua.load(route_contents);
 
     ros::Rate rate(30);
     while (ros::ok())
@@ -202,9 +228,14 @@ main(int argc, char **argv)
         // replace the route here so the route dosen't replace itself from a spin callback
         if (load_next)
         {
-            env = next_env;
-            route = next_route;
+            env = sol::environment(lua, sol::create);
+            route = lua.load(route_contents);
             load_next = false;
+
+            if(!route.valid())
+            {
+                ROS_ERROR_STREAM("Loaded invalid Lua!");
+            }
         }
 
         rate.sleep();
