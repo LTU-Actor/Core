@@ -13,7 +13,7 @@ class RouteSelect extends Component {
     return (
       <div>
         <Row>
-          <textarea className="col border rounded bg-light mb-1" value={this.state.route} style={{height: "400px"}} onChange={this.routeOnChange} />
+          <textarea className="col border rounded bg-light mb-1" value={this.state.route} style={{height: "400px", fontFamily: 'monospace'}} onChange={this.routeOnChange} />
         </Row>
         <Row>
           <Button className='col-auto' onClick={this.refreshRoutes}>&#8635;</Button>

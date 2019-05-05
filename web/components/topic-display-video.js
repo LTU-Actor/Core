@@ -8,7 +8,7 @@ class TopicDisplayVideo extends Component {
     return (
       <div>
         <span className='font-weight-bold'>{this.props.topic}</span>
-        <img src={`http://${this.state.server}/stream?topic=${this.props.topic}`} />
+        <img src={`http://${this.state.server}/stream?topic=${this.props.topic}&type=ros_compressed`} />
       </div>
     )
   }

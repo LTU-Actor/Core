@@ -37,6 +37,7 @@ catkin_package(
 
 add_executable(router
   src/router/main.cpp
+  src/router/subpub.h
 )
 
 include_directories(${catkin_INCLUDE_DIRS})
