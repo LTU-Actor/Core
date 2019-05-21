@@ -219,7 +219,11 @@ main(int argc, char **argv)
     std::string estop_service;
     nh.getParam("script_folder", script_folder);
     if (!ends_with(script_folder, "/")) script_folder += "/";
-    nh.getParam("estop_service", estop_service);
+    if (!nh.getParam("estop_service", estop_service))
+    {
+        ROS_ERROR_STREAM("Must specify estop_service!");
+        return EXIT_FAILURE;
+    }
 
     // Pubs & Subs
     ros::Publisher twist_out = nh.advertise<geometry_msgs::Twist>("cmd", 1);
@@ -377,6 +381,9 @@ end
             // replace the route here so the route doesn't replace itself from a spin callback
             if (load_next)
             {
+                std_srvs::Empty e;
+                estop.call(e);
+
                 env = sol::environment(lua, sol::create); // reset the route sandbox
                 route = lua.load(route_contents);
                 route_subs.clear();
