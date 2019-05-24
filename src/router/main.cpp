@@ -45,18 +45,20 @@
 // Local
 #include "subpub.h"
 
-bool load_next = false;
+bool load_next = true;
 std::string route_filename = "init";
 std::string route_contents =
     "--[[\n"
-    "  heartbeat()                          toggle the heartbeat status topic to show the route is running\n"
-    "  spin_once()                          allow ROS topics/services to be serviced\n"
-    "  spin_for(int ms)                     delay for milliseconds while also servicing ROS\n"
-    "  send(float linear, float angular)    continuously send cmd commands (forward/reverse & steering)\n"
-    "  send_topic(string topic)             continuously forward a Twist topic as for cmd instead of constants\n"
-    "  estop()                              trigger an estop\n"
+    "  heartbeat()                           toggle the heartbeat status topic to show the route is running\n"
+    "  spin_once()                           allow ROS topics/services to be serviced\n"
+    "  spin_for(int ms)                      delay for milliseconds while also servicing ROS\n"
+    "  send(float linear, float angular)     continuously send cmd commands (forward/reverse & steering)\n"
+    "  send_topic(string topic)              continuously forward a Twist topic as for cmd instead of constants\n"
+    "  last_Float32(string topic)            get the value of a topic (replace Float32 with any std_msgs type)\n"
+    "  pub_Float32(string topic, float val)  oppisite of above, publish on a topic\n"
+    "  estop()                               trigger an estop\n"
     "]]\n\n"
-    "send(0.0, 0.0);\nheartbeat();\nspin_for(500);";
+    "while true do\n  send(0.0, 0.0);\n  heartbeat();\n  spin_for(500);\nend";
 
 std::string script_folder;
 
@@ -258,97 +260,100 @@ main(int argc, char **argv)
     std::unordered_map<std::string, std::shared_ptr<RouteSub_>> route_subs;
     std::unordered_map<std::string, std::shared_ptr<RoutePub_>> route_pubs;
 
-    // Might as well open a decent amount of stuff since we don't create many Lua states
-    lua.open_libraries(sol::lib::base, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);
+    auto reset_state = [&]() {
+        lua = {};
 
-    // Used in wrappers that will exit from Lua on return true
-    lua.set_function("__spin_once", []() -> bool {
-        ros::spinOnce();
-        return load_next;
-    });
-    lua.set_function("__spin_for", [](int ms) -> bool {
-        auto begin = std::chrono::high_resolution_clock::now();
-        ros::Rate r(50);
-        while (true)
-        {
-            auto elapsed = std::chrono::high_resolution_clock::now() - begin;
-            if (elapsed >= std::chrono::milliseconds(ms)) break;
+        // Might as well open a decent amount of stuff since we don't create many Lua states
+        lua.open_libraries(sol::lib::base, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);
+
+        // Used in wrappers that will exit from Lua on return true
+        lua.set_function("__spin_once", []() -> bool {
             ros::spinOnce();
-            if (load_next) return true; // Return as early as possible if needed
-            r.sleep();
-        }
-        return load_next;
-    });
+            return load_next || !ros::ok();
+        });
+        lua.set_function("__spin_for", [](int ms) -> bool {
+            auto begin = std::chrono::high_resolution_clock::now();
+            ros::Rate r(50);
+            while (true)
+            {
+                auto elapsed = std::chrono::high_resolution_clock::now() - begin;
+                if (elapsed >= std::chrono::milliseconds(ms)) break;
+                ros::spinOnce();
+                if (load_next || !ros::ok()) return true; // Return as early as possible if needed
+                r.sleep();
+            }
+            return load_next;
+        });
 
-    lua.set_function("heartbeat", [&] {
-        hb_msg.data = !hb_msg.data;
-        hb.publish(hb_msg);
-    });
-    lua.set_function("estop", [&estop] {
-        std_srvs::Empty e;
-        estop.call(e);
-    });
-    lua.set_function("send_topic", [&](std::string topic) {
-        // Stop anything caused by send()
-        cmd_timer.stop();
+        lua.set_function("heartbeat", [&] {
+            hb_msg.data = !hb_msg.data;
+            hb.publish(hb_msg);
+        });
+        lua.set_function("estop", [&estop] {
+            std_srvs::Empty e;
+            estop.call(e);
+        });
+        lua.set_function("send_topic", [&](std::string topic) {
+            // Stop anything caused by send()
+            cmd_timer.stop();
 
-        // Only screw with the subscriber if it is different
-        if (twist_in.getTopic() != topic)
-        {
-            boost::function<void(const geometry_msgs::Twist &)> callback = [&](const geometry_msgs::Twist &msg) {
-                twist_out.publish(msg);
-            };
-            twist_in = nh.subscribe<geometry_msgs::Twist>(topic, 1, callback);
-        }
-    });
-    lua.set_function("send", [&](float linear, float angular) {
-        // Stop anything caused by send_topic, only if it is running
-        if (!twist_in.getTopic().empty()) twist_in = {};
+            // Only screw with the subscriber if it is different
+            if (twist_in.getTopic() != topic)
+            {
+                boost::function<void(const geometry_msgs::Twist &)> callback = [&](const geometry_msgs::Twist &msg) {
+                    twist_out.publish(msg);
+                };
+                twist_in = nh.subscribe<geometry_msgs::Twist>(topic, 1, callback);
+            }
+        });
+        lua.set_function("send", [&](float linear, float angular) {
+            // Stop anything caused by send_topic, only if it is running
+            if (!twist_in.getTopic().empty()) twist_in = {};
 
-        // Our car only listens for linear.x and angular.z
-        cmd_msg.linear.x = linear;
-        cmd_msg.linear.y = 0;
-        cmd_msg.linear.z = 0;
-        cmd_msg.angular.x = 0;
-        cmd_msg.angular.y = 0;
-        cmd_msg.angular.z = angular;
+            // Our car only listens for linear.x and angular.z
+            cmd_msg.linear.x = linear;
+            cmd_msg.linear.y = 0;
+            cmd_msg.linear.z = 0;
+            cmd_msg.angular.x = 0;
+            cmd_msg.angular.y = 0;
+            cmd_msg.angular.z = angular;
 
-        cmd_timer.start();
-    });
+            cmd_timer.start();
+        });
 
-    lua_add_sub(lua, nh, route_subs, Bool, bool, data);
-    lua_add_sub(lua, nh, route_subs, Byte, unsigned char, data);
-    lua_add_sub(lua, nh, route_subs, Char, char, data);
-    lua_add_sub(lua, nh, route_subs, Duration, double, data.toSec());
-    lua_add_sub(lua, nh, route_subs, Float32, float, data);
-    lua_add_sub(lua, nh, route_subs, Float64, double, data);
-    lua_add_sub(lua, nh, route_subs, Int16, int, data);
-    lua_add_sub(lua, nh, route_subs, Int32, int, data);
-    lua_add_sub(lua, nh, route_subs, Int8, int, data);
-    lua_add_sub(lua, nh, route_subs, String, std::string, data);
-    lua_add_sub(lua, nh, route_subs, Time, double, data.toSec());
-    lua_add_sub(lua, nh, route_subs, UInt16, unsigned int, data);
-    lua_add_sub(lua, nh, route_subs, UInt32, unsigned int, data);
-    lua_add_sub(lua, nh, route_subs, UInt8, unsigned int, data);
+        lua_add_sub(lua, nh, route_subs, Bool, bool, data);
+        lua_add_sub(lua, nh, route_subs, Byte, unsigned char, data);
+        lua_add_sub(lua, nh, route_subs, Char, char, data);
+        lua_add_sub(lua, nh, route_subs, Duration, double, data.toSec());
+        lua_add_sub(lua, nh, route_subs, Float32, float, data);
+        lua_add_sub(lua, nh, route_subs, Float64, double, data);
+        lua_add_sub(lua, nh, route_subs, Int16, int, data);
+        lua_add_sub(lua, nh, route_subs, Int32, int, data);
+        lua_add_sub(lua, nh, route_subs, Int8, int, data);
+        lua_add_sub(lua, nh, route_subs, String, std::string, data);
+        lua_add_sub(lua, nh, route_subs, Time, double, data.toSec());
+        lua_add_sub(lua, nh, route_subs, UInt16, unsigned int, data);
+        lua_add_sub(lua, nh, route_subs, UInt32, unsigned int, data);
+        lua_add_sub(lua, nh, route_subs, UInt8, unsigned int, data);
 
-    lua_add_pub(lua, nh, route_pubs, Bool, bool, data);
-    lua_add_pub(lua, nh, route_pubs, Byte, unsigned char, data);
-    lua_add_pub(lua, nh, route_pubs, Char, char, data);
-    // lua_add_pub(lua, nh, route_pubs, Duration, double, data.toSec());
-    lua_add_pub(lua, nh, route_pubs, Float32, float, data);
-    lua_add_pub(lua, nh, route_pubs, Float64, double, data);
-    lua_add_pub(lua, nh, route_pubs, Int16, int, data);
-    lua_add_pub(lua, nh, route_pubs, Int32, int, data);
-    lua_add_pub(lua, nh, route_pubs, Int8, int, data);
-    lua_add_pub(lua, nh, route_pubs, String, std::string, data);
-    // lua_add_pub(lua, nh, route_pubs, Time, double, data.);
-    lua_add_pub(lua, nh, route_pubs, UInt16, unsigned int, data);
-    lua_add_pub(lua, nh, route_pubs, UInt32, unsigned int, data);
-    lua_add_pub(lua, nh, route_pubs, UInt8, unsigned int, data);
+        lua_add_pub(lua, nh, route_pubs, Bool, bool, data);
+        lua_add_pub(lua, nh, route_pubs, Byte, unsigned char, data);
+        lua_add_pub(lua, nh, route_pubs, Char, char, data);
+        // lua_add_pub(lua, nh, route_pubs, Duration, double, data.toSec());
+        lua_add_pub(lua, nh, route_pubs, Float32, float, data);
+        lua_add_pub(lua, nh, route_pubs, Float64, double, data);
+        lua_add_pub(lua, nh, route_pubs, Int16, int, data);
+        lua_add_pub(lua, nh, route_pubs, Int32, int, data);
+        lua_add_pub(lua, nh, route_pubs, Int8, int, data);
+        lua_add_pub(lua, nh, route_pubs, String, std::string, data);
+        // lua_add_pub(lua, nh, route_pubs, Time, double, data.);
+        lua_add_pub(lua, nh, route_pubs, UInt16, unsigned int, data);
+        lua_add_pub(lua, nh, route_pubs, UInt32, unsigned int, data);
+        lua_add_pub(lua, nh, route_pubs, UInt8, unsigned int, data);
 
 
-    // wrappers to exit the script to allow replacing it
-    lua.script(R"(
+        // wrappers to exit the script to allow replacing it
+        lua.safe_script(R"(
 function spin_once()
     if __spin_once() then
         error("reloading script")
@@ -359,16 +364,15 @@ function spin_for(ms)
         error("reloading script")
     end
 end
-        )");
-
+            )");
+    };
 
 
     /*
      * Main looping
      ******************************************************************************************************************/
 
-    sol::environment env = sol::environment(lua, sol::create);
-    sol::load_result route = lua.load(route_contents);
+    bool valid = false;
 
     ros::Rate rate(30);
     while (ros::ok())
@@ -377,25 +381,30 @@ end
 
         try
         {
-            route(env);
-            // replace the route here so the route doesn't replace itself from a spin callback
             if (load_next)
             {
-                std_srvs::Empty e;
-                estop.call(e);
+                load_next = false;
+                valid = true;
 
-                env = sol::environment(lua, sol::create); // reset the route sandbox
-                route = lua.load(route_contents);
                 route_subs.clear();
                 route_pubs.clear();
-                load_next = false;
 
-                if (!route.valid()) ROS_ERROR_STREAM("Loaded invalid Lua!");
+                reset_state();
+                lua.script(route_contents);
+
+                if (!load_next)
+                {
+                    std_srvs::Empty e;
+                    estop.call(e);
+                }
             }
         }
-        catch (const std::exception &e)
+        catch (const std::exception &err)
         {
-            ROS_ERROR_STREAM("SOL: " << e.what());
+            std_srvs::Empty e;
+            estop.call(e);
+            valid = false;
+            ROS_ERROR_STREAM("SOL: " << err.what());
         }
 
         rate.sleep();
