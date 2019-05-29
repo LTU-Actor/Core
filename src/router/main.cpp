@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <memory>
 #include <thread>
+#include <tuple>
 #include <unordered_map>
 
 // file io
@@ -18,6 +19,7 @@
 // Ros
 #include <geometry_msgs/Twist.h>
 #include <ros/ros.h>
+#include <sensor_msgs/NavSatFix.h>
 #include <std_srvs/Empty.h>
 
 #include <std_msgs/Bool.h>
@@ -42,23 +44,41 @@
 #include <ltu_actor_core/SaveRoute.h>
 #include <ltu_actor_core/SetTemporaryRoute.h>
 
+const char *route_setup =
+#include "setup.lua"
+    ;
+
 // Local
 #include "subpub.h"
 
+ros::NodeHandle *nh = 0;
+
+// Pubs & Subs
+ros::Publisher twist_out;
+ros::Subscriber twist_in;
+ros::Publisher hb;
+ros::ServiceServer get_current_route;
+ros::ServiceServer get_route_list;
+ros::ServiceServer load_route;
+ros::ServiceServer save_route;
+ros::ServiceServer set_temporary_route;
+ros::ServiceClient estop;
+
+// main timer
+ros::Timer cmd_timer;
+geometry_msgs::Twist cmd_msg;
+
+// route state
+sol::state lua;
+std::unordered_map<std::string, std::shared_ptr<RouteSub_>> route_subs;
+std::unordered_map<std::string, std::shared_ptr<RoutePub_>> route_pubs;
+
+// random state
 bool load_next = true;
 std::string route_filename = "init";
 std::string route_contents =
-    "--[[\n"
-    "  heartbeat()                           toggle the heartbeat status topic to show the route is running\n"
-    "  spin_once()                           allow ROS topics/services to be serviced\n"
-    "  spin_for(int ms)                      delay for milliseconds while also servicing ROS\n"
-    "  send(float linear, float angular)     continuously send cmd commands (forward/reverse & steering)\n"
-    "  send_topic(string topic)              continuously forward a Twist topic as for cmd instead of constants\n"
-    "  last_Float32(string topic)            get the value of a topic (replace Float32 with any std_msgs type)\n"
-    "  pub_Float32(string topic, float val)  oppisite of above, publish on a topic\n"
-    "  estop()                               trigger an estop\n"
-    "]]\n\n"
-    "while true do\n  send(0.0, 0.0);\n  heartbeat();\n  spin_for(500);\nend";
+#include "default_route.lua"
+    ;
 
 std::string script_folder;
 
@@ -207,173 +227,200 @@ set_temporary_route_cb(ltu_actor_core::SetTemporaryRoute::Request &req,
     return true;
 }
 
+void
+create_subs_n_pubs()
+{
+    std::string estop_service;
+    nh->getParam("script_folder", script_folder);
+    if (!ends_with(script_folder, "/")) script_folder += "/";
+    if (!nh->getParam("estop_service", estop_service))
+    {
+        ROS_ERROR_STREAM("Must specify estop_service!");
+        throw std::runtime_error("Must specify estop_service!");
+    }
+
+    twist_out = nh->advertise<geometry_msgs::Twist>("cmd", 0);
+    hb = nh->advertise<std_msgs::Bool>("heartbeat", 0);
+    get_current_route = nh->advertiseService("get_current_route", &get_current_route_cb);
+    get_route_list = nh->advertiseService("get_route_list", &get_route_list_cb);
+    load_route = nh->advertiseService("load_route", &load_route_cb);
+    save_route = nh->advertiseService("save_route", &save_route_cb);
+    set_temporary_route = nh->advertiseService("set_temporary_route", &set_temporary_route_cb);
+    estop = nh->serviceClient<std_srvs::Empty>(estop_service);
+}
+
+void
+heartbeat(void)
+{
+    static std_msgs::Bool hb_msg = {};
+    hb_msg.data = !hb_msg.data;
+    hb.publish(hb_msg);
+}
+
+void
+emergency_stop(void)
+{
+    static std_srvs::Empty e;
+    estop.call(e);
+}
+
+void
+send_topic(std::string topic)
+{
+    // Stop anything caused by send()
+    cmd_timer.stop();
+
+    // Only screw with the subscriber if it is different
+    if (twist_in.getTopic() != topic)
+    {
+        boost::function<void(const geometry_msgs::Twist &)> callback = [&](const geometry_msgs::Twist &msg) {
+            twist_out.publish(msg);
+        };
+        twist_in = nh->subscribe<geometry_msgs::Twist>(topic, 1, callback);
+    }
+}
+
+void
+send_twist(float linear, float angular)
+{
+    // Stop anything caused by send_topic, only if it is running
+    if (!twist_in.getTopic().empty()) twist_in = {};
+
+    // Our car only listens for linear.x and angular.z
+    cmd_msg.linear.x = linear;
+    cmd_msg.linear.y = 0;
+    cmd_msg.linear.z = 0;
+    cmd_msg.angular.x = 0;
+    cmd_msg.angular.y = 0;
+    cmd_msg.angular.z = angular;
+
+    cmd_timer.start();
+}
+
+void
+loop(const ros::TimerEvent &e)
+{
+    twist_out.publish(cmd_msg);
+}
+
+template <typename T, typename R>
+void
+add_sub(std::string name, std::function<R(const T &)> get_data)
+{
+    lua.set_function(name, [&](std::string topic) -> R {
+        typedef RouteSub<T> RS;
+        auto it = route_subs.find(topic);
+        if (it != route_subs.end())
+        {
+            std::shared_ptr<RS> ptr = std::dynamic_pointer_cast<RS>(it->second);
+            if (ptr != NULL) return get_data(ptr->last());
+        }
+
+        route_subs.emplace(std::make_pair(topic, std::make_shared<RS>(*nh, topic)));
+        return {};
+    });
+}
+
+template <typename T, typename R>
+void
+add_pub(std::string name, std::function<T(const R &)> set_data)
+{
+    lua.set_function(name, [&](std::string topic, R tuple) -> void {
+        typedef RoutePub<T> PS;
+        auto it = route_pubs.find(topic);
+        if (it == route_pubs.end())
+            it = route_pubs.emplace(std::make_pair(topic, std::make_shared<PS>(*nh, topic))).first;
+        std::shared_ptr<PS> ptr = std::dynamic_pointer_cast<PS>(it->second);
+        T msg = set_data(tuple);
+        if (ptr != NULL) return ptr->publish(msg);
+    });
+}
+
+void
+reset_state()
+{
+    lua = {};
+
+    // Might as well open a decent amount of stuff since we don't create many Lua states
+    lua.open_libraries(sol::lib::base, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);
+
+    // Used in wrappers that will exit from Lua on return true
+    lua.set_function("__spin_once", []() -> bool {
+        ros::spinOnce();
+        return load_next || !ros::ok();
+    });
+    lua.set_function("__spin_for", [](int ms) -> bool {
+        auto begin = std::chrono::high_resolution_clock::now();
+        ros::Rate r(50);
+        while (true)
+        {
+            auto elapsed = std::chrono::high_resolution_clock::now() - begin;
+            if (elapsed >= std::chrono::milliseconds(ms)) break;
+            ros::spinOnce();
+            if (load_next || !ros::ok()) return true; // Return as early as possible if needed
+            r.sleep();
+        }
+        return load_next;
+    });
+
+    lua.set_function("heartbeat", &heartbeat);
+    lua.set_function("estop", &emergency_stop);
+    lua.set_function("send_topic", &send_topic);
+    lua.set_function("send", &send_twist);
+
+    // clang-format off
+    add_sub<std_msgs::Bool, bool>         ("last_bool",    [](auto x) { return x.data; });
+    add_sub<std_msgs::Byte, unsigned char>("last_byte",    [](auto x) { return x.data; });
+    add_sub<std_msgs::Char, char>         ("last_char",    [](auto x) { return x.data; });
+    add_sub<std_msgs::Float32, float>     ("last_float32", [](auto x) { return x.data; });
+    add_sub<std_msgs::Float64, double>    ("last_float64", [](auto x) { return x.data; });
+    add_sub<std_msgs::Int16, int16_t>     ("last_int16",   [](auto x) { return x.data; });
+    add_sub<std_msgs::Int32, int32_t>     ("last_int32",   [](auto x) { return x.data; });
+    add_sub<std_msgs::Int8, int8_t>       ("last_int8",    [](auto x) { return x.data; });
+    add_sub<std_msgs::String, std::string>("last_string",  [](auto x) { return x.data; });
+    add_sub<std_msgs::UInt16, uint16_t>   ("last_uint16",  [](auto x) { return x.data; });
+    add_sub<std_msgs::UInt32, uint32_t>   ("last_uint32",  [](auto x) { return x.data; });
+    add_sub<std_msgs::UInt8, uint8_t>     ("last_uint8",   [](auto x) { return x.data; });
+
+    add_pub<std_msgs::Bool, bool>         ("pub_bool",    [](auto x) {std_msgs::Bool msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::Byte, unsigned char>("pub_byte",    [](auto x) {std_msgs::Byte msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::Char, char>         ("pub_char",    [](auto x) {std_msgs::Char msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::Float32, float>     ("pub_float32", [](auto x) {std_msgs::Float32 msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::Float64, double>    ("pub_float64", [](auto x) {std_msgs::Float64 msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::Int16, int16_t>     ("pub_int16",   [](auto x) {std_msgs::Int16 msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::Int32, int32_t>     ("pub_int32",   [](auto x) {std_msgs::Int32 msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::Int8, int8_t>       ("pub_int8",    [](auto x) {std_msgs::Int8 msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::String, std::string>("pub_string",  [](auto x) {std_msgs::String msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::UInt16, uint16_t>   ("pub_uint16",  [](auto x) {std_msgs::UInt16 msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::UInt32, uint32_t>   ("pub_uint32",  [](auto x) {std_msgs::UInt32 msg; msg.data = x; return msg;} );
+    add_pub<std_msgs::UInt8, uint8_t>     ("pub_uint8",   [](auto x) {std_msgs::UInt8 msg; msg.data = x; return msg;} );
+
+    add_sub<geometry_msgs::Twist, std::tuple<double, double, double, double, double, double>>
+        ("last_twist", [](auto x) { return std::make_tuple(x.linear.x, x.linear.y, x.linear.z, x.angular.x, x.angular.y, x.angular.z); });
+    add_pub<geometry_msgs::Twist, std::tuple<double, double, double, double, double, double>>
+        ("pub_twist", [](auto x) { geometry_msgs::Twist msg; msg.linear.x = std::get<0>(x); msg.linear.y = std::get<1>(x); msg.linear.z = std::get<2>(x); msg.angular.x = std::get<3>(x); msg.angular.y = std::get<4>(x); msg.angular.z = std::get<5>(x); return msg;});
+
+    // clang-format on
+
+    lua.safe_script(route_setup);
+}
+
 int
 main(int argc, char **argv)
 {
-    /*
-     * Init
-     ******************************************************************************************************************/
     ros::init(argc, argv, "router");
     ros::start();
-    ros::NodeHandle nh{"~"};
+    nh = new ros::NodeHandle("~");
 
-    // ROS Params
-    std::string estop_service;
-    nh.getParam("script_folder", script_folder);
-    if (!ends_with(script_folder, "/")) script_folder += "/";
-    if (!nh.getParam("estop_service", estop_service))
-    {
-        ROS_ERROR_STREAM("Must specify estop_service!");
-        return EXIT_FAILURE;
-    }
+    create_subs_n_pubs();
+    heartbeat();
 
-    // Pubs & Subs
-    ros::Publisher twist_out = nh.advertise<geometry_msgs::Twist>("cmd", 1);
-    ros::Subscriber twist_in;
-    ros::Publisher hb = nh.advertise<std_msgs::Bool>("heartbeat", 1);
-    ros::ServiceServer get_current_route = nh.advertiseService("get_current_route", &get_current_route_cb);
-    ros::ServiceServer get_route_list = nh.advertiseService("get_route_list", &get_route_list_cb);
-    ros::ServiceServer load_route = nh.advertiseService("load_route", &load_route_cb);
-    ros::ServiceServer save_route = nh.advertiseService("save_route", &save_route_cb);
-    ros::ServiceServer set_temporary_route = nh.advertiseService("set_temporary_route", &set_temporary_route_cb);
-    ros::ServiceClient estop = nh.serviceClient<std_srvs::Empty>(estop_service);
-
-    // Heartbeat
-    std_msgs::Bool hb_msg;
-    hb_msg.data = false;
-
-    // Constant twist pub
-    geometry_msgs::Twist cmd_msg;
     cmd_msg.linear.x = cmd_msg.linear.y = cmd_msg.linear.z = 0;
     cmd_msg.angular.x = cmd_msg.angular.y = cmd_msg.angular.z = 0;
-    ros::Timer cmd_timer =
-        nh.createTimer(ros::Duration(0.01), [&](const ros::TimerEvent &e) { twist_out.publish(cmd_msg); });
+    cmd_timer = nh->createTimer(ros::Duration(0.01), &loop);
     cmd_timer.start();
 
-
-
-    /*
-     * Setup Lua environment
-     ******************************************************************************************************************/
-
-    sol::state lua;
-    std::unordered_map<std::string, std::shared_ptr<RouteSub_>> route_subs;
-    std::unordered_map<std::string, std::shared_ptr<RoutePub_>> route_pubs;
-
-    auto reset_state = [&]() {
-        lua = {};
-
-        // Might as well open a decent amount of stuff since we don't create many Lua states
-        lua.open_libraries(sol::lib::base, sol::lib::string, sol::lib::math, sol::lib::table, sol::lib::os);
-
-        // Used in wrappers that will exit from Lua on return true
-        lua.set_function("__spin_once", []() -> bool {
-            ros::spinOnce();
-            return load_next || !ros::ok();
-        });
-        lua.set_function("__spin_for", [](int ms) -> bool {
-            auto begin = std::chrono::high_resolution_clock::now();
-            ros::Rate r(50);
-            while (true)
-            {
-                auto elapsed = std::chrono::high_resolution_clock::now() - begin;
-                if (elapsed >= std::chrono::milliseconds(ms)) break;
-                ros::spinOnce();
-                if (load_next || !ros::ok()) return true; // Return as early as possible if needed
-                r.sleep();
-            }
-            return load_next;
-        });
-
-        lua.set_function("heartbeat", [&] {
-            hb_msg.data = !hb_msg.data;
-            hb.publish(hb_msg);
-        });
-        lua.set_function("estop", [&estop] {
-            std_srvs::Empty e;
-            estop.call(e);
-        });
-        lua.set_function("send_topic", [&](std::string topic) {
-            // Stop anything caused by send()
-            cmd_timer.stop();
-
-            // Only screw with the subscriber if it is different
-            if (twist_in.getTopic() != topic)
-            {
-                boost::function<void(const geometry_msgs::Twist &)> callback = [&](const geometry_msgs::Twist &msg) {
-                    twist_out.publish(msg);
-                };
-                twist_in = nh.subscribe<geometry_msgs::Twist>(topic, 1, callback);
-            }
-        });
-        lua.set_function("send", [&](float linear, float angular) {
-            // Stop anything caused by send_topic, only if it is running
-            if (!twist_in.getTopic().empty()) twist_in = {};
-
-            // Our car only listens for linear.x and angular.z
-            cmd_msg.linear.x = linear;
-            cmd_msg.linear.y = 0;
-            cmd_msg.linear.z = 0;
-            cmd_msg.angular.x = 0;
-            cmd_msg.angular.y = 0;
-            cmd_msg.angular.z = angular;
-
-            cmd_timer.start();
-        });
-
-        lua_add_sub(lua, nh, route_subs, Bool, bool, data);
-        lua_add_sub(lua, nh, route_subs, Byte, unsigned char, data);
-        lua_add_sub(lua, nh, route_subs, Char, char, data);
-        lua_add_sub(lua, nh, route_subs, Duration, double, data.toSec());
-        lua_add_sub(lua, nh, route_subs, Float32, float, data);
-        lua_add_sub(lua, nh, route_subs, Float64, double, data);
-        lua_add_sub(lua, nh, route_subs, Int16, int, data);
-        lua_add_sub(lua, nh, route_subs, Int32, int, data);
-        lua_add_sub(lua, nh, route_subs, Int8, int, data);
-        lua_add_sub(lua, nh, route_subs, String, std::string, data);
-        lua_add_sub(lua, nh, route_subs, Time, double, data.toSec());
-        lua_add_sub(lua, nh, route_subs, UInt16, unsigned int, data);
-        lua_add_sub(lua, nh, route_subs, UInt32, unsigned int, data);
-        lua_add_sub(lua, nh, route_subs, UInt8, unsigned int, data);
-
-        lua_add_pub(lua, nh, route_pubs, Bool, bool, data);
-        lua_add_pub(lua, nh, route_pubs, Byte, unsigned char, data);
-        lua_add_pub(lua, nh, route_pubs, Char, char, data);
-        // lua_add_pub(lua, nh, route_pubs, Duration, double, data.toSec());
-        lua_add_pub(lua, nh, route_pubs, Float32, float, data);
-        lua_add_pub(lua, nh, route_pubs, Float64, double, data);
-        lua_add_pub(lua, nh, route_pubs, Int16, int, data);
-        lua_add_pub(lua, nh, route_pubs, Int32, int, data);
-        lua_add_pub(lua, nh, route_pubs, Int8, int, data);
-        lua_add_pub(lua, nh, route_pubs, String, std::string, data);
-        // lua_add_pub(lua, nh, route_pubs, Time, double, data.);
-        lua_add_pub(lua, nh, route_pubs, UInt16, unsigned int, data);
-        lua_add_pub(lua, nh, route_pubs, UInt32, unsigned int, data);
-        lua_add_pub(lua, nh, route_pubs, UInt8, unsigned int, data);
-
-
-        // wrappers to exit the script to allow replacing it
-        lua.safe_script(R"(
-function spin_once()
-    if __spin_once() then
-        error("reloading script")
-    end
-end
-function spin_for(ms)
-    if __spin_for(ms) then
-        error("reloading script")
-    end
-end
-            )");
-    };
-
-
-    /*
-     * Main looping
-     ******************************************************************************************************************/
-
     bool valid = false;
-
     ros::Rate rate(30);
     while (ros::ok())
     {
@@ -401,8 +448,7 @@ end
         }
         catch (const std::exception &err)
         {
-            std_srvs::Empty e;
-            estop.call(e);
+            emergency_stop();
             valid = false;
             ROS_ERROR_STREAM("SOL: " << err.what());
         }

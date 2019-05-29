@@ -38,6 +38,8 @@ catkin_package(
 add_executable(router
   src/router/main.cpp
   src/router/subpub.h
+  src/router/setup.lua
+  src/router/default_route.lua
 )
 
 include_directories(${catkin_INCLUDE_DIRS})
