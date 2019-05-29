@@ -12,7 +12,17 @@ function spin_for(ms)
     end
 end
 
+-- https://stackoverflow.com/questions/365826/calculate-distance-between-2-gps-coordinates
 function dist(lat, long)
+    local d2r = math.pi / 180.0
+    local earth_rad_km = 6367.0
+
+    local dlong = (_longitude - long) * d2r
+    local dlat = (_latitude - lat) * d2r
+    local a = math.pow(math.sin(dlat/2.0), 2) + math.cos(lat*d2r) * math.cos(_latitude*d2r) * math.pow(math.sin(dlong/2.0), 2)
+    local c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    return c * 636700 -- meters
 end
 
 )====="
