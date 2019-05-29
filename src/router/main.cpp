@@ -63,6 +63,7 @@ ros::ServiceServer load_route;
 ros::ServiceServer save_route;
 ros::ServiceServer set_temporary_route;
 ros::ServiceClient estop;
+ros::Subscriber navsatfix;
 
 // main timer
 ros::Timer cmd_timer;
@@ -228,15 +229,28 @@ set_temporary_route_cb(ltu_actor_core::SetTemporaryRoute::Request &req,
 }
 
 void
+navsatfix_cb(const sensor_msgs::NavSatFix &msg)
+{
+    lua["_latitude"] = msg.latitude;
+    lua["_longitude"] = msg.longitude;
+    lua["_altitude"] = msg.altitude;
+}
+
+void
 create_subs_n_pubs()
 {
     std::string estop_service;
-    nh->getParam("script_folder", script_folder);
-    if (!ends_with(script_folder, "/")) script_folder += "/";
     if (!nh->getParam("estop_service", estop_service))
     {
         ROS_ERROR_STREAM("Must specify estop_service!");
         throw std::runtime_error("Must specify estop_service!");
+    }
+
+    std::string navsatfix_topic;
+    if (!nh->getParam("navsatfix_topic", navsatfix_topic))
+    {
+        ROS_ERROR_STREAM("Must specify navsatfix_topic!");
+        throw std::runtime_error("Must specify navsatfix_topic!");
     }
 
     twist_out = nh->advertise<geometry_msgs::Twist>("cmd", 0);
@@ -247,6 +261,7 @@ create_subs_n_pubs()
     save_route = nh->advertiseService("save_route", &save_route_cb);
     set_temporary_route = nh->advertiseService("set_temporary_route", &set_temporary_route_cb);
     estop = nh->serviceClient<std_srvs::Empty>(estop_service);
+    navsatfix = nh->subscribe(navsatfix_topic, 5, &navsatfix_cb);
 }
 
 void
@@ -411,6 +426,9 @@ main(int argc, char **argv)
     ros::init(argc, argv, "router");
     ros::start();
     nh = new ros::NodeHandle("~");
+
+    nh->getParam("script_folder", script_folder);
+    if (!ends_with(script_folder, "/")) script_folder += "/";
 
     create_subs_n_pubs();
     heartbeat();
