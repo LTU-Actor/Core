@@ -320,15 +320,15 @@ loop(const ros::TimerEvent &e)
 
 template <typename T, typename R>
 void
-add_sub(std::string name, std::function<R(const T &)> get_data)
+add_sub(std::string name, std::function<R(const T)> get_data)
 {
-    lua.set_function(name, [&](std::string topic) -> R {
+    lua.set_function(name, [&,get_data](std::string topic) -> R {
         typedef RouteSub<T> RS;
         auto it = route_subs.find(topic);
         if (it != route_subs.end())
         {
             std::shared_ptr<RS> ptr = std::dynamic_pointer_cast<RS>(it->second);
-            if (ptr != NULL) return get_data(ptr->last());
+            if (ptr.get() != NULL) return get_data(ptr->last());
         }
 
         route_subs.emplace(std::make_pair(topic, std::make_shared<RS>(*nh, topic)));
@@ -338,16 +338,16 @@ add_sub(std::string name, std::function<R(const T &)> get_data)
 
 template <typename T, typename R>
 void
-add_pub(std::string name, std::function<T(const R &)> set_data)
+add_pub(std::string name, std::function<T(const R)> set_data)
 {
-    lua.set_function(name, [&](std::string topic, R tuple) -> void {
+    lua.set_function(name, [&,set_data](R tuple, std::string topic) -> void {
         typedef RoutePub<T> PS;
         auto it = route_pubs.find(topic);
         if (it == route_pubs.end())
             it = route_pubs.emplace(std::make_pair(topic, std::make_shared<PS>(*nh, topic))).first;
         std::shared_ptr<PS> ptr = std::dynamic_pointer_cast<PS>(it->second);
         T msg = set_data(tuple);
-        if (ptr != NULL) return ptr->publish(msg);
+        if (ptr.get() != NULL) return ptr->publish(msg);
     });
 }
 
@@ -414,6 +414,9 @@ reset_state()
         ("last_twist", [](auto x) { return std::make_tuple(x.linear.x, x.linear.y, x.linear.z, x.angular.x, x.angular.y, x.angular.z); });
     add_pub<geometry_msgs::Twist, std::tuple<double, double, double, double, double, double>>
         ("pub_twist", [](auto x) { geometry_msgs::Twist msg; msg.linear.x = std::get<0>(x); msg.linear.y = std::get<1>(x); msg.linear.z = std::get<2>(x); msg.angular.x = std::get<3>(x); msg.angular.y = std::get<4>(x); msg.angular.z = std::get<5>(x); return msg;});
+
+    add_pub<sensor_msgs::NavSatFix, std::tuple<double, double>>
+        ("pub_latlong", [](auto x) {sensor_msgs::NavSatFix msg; msg.latitude = std::get<0>(x); msg.longitude = std::get<1>(x); return msg;});
 
     // clang-format on
 
