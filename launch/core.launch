@@ -1,17 +1,27 @@
 <launch>
+  <arg name="rosbridge_port" default="8090" />
+  <arg name="http_video_port" default="8091" />
+  <arg name="script_folder" default="$HOME" />
+  <arg name="estop_service" default="/estop/stop" />
+  <arg name="navsatfix_topic" default="/navsatfix" />
+
   <group ns="core">
-    <node name="router" pkg="ltu_actor_core" type="router" output="screen"/>
+    <node name="router" pkg="ltu_actor_core" type="router" output="screen">
+      <param name="script_folder" value="$(arg script_folder)" />
+      <param name="estop_service" value="$(arg estop_service)"/>
+      <param name="navsatfix_topic" value="$(arg navsatfix_topic)"/>
+    </node>
 
     <node name="web_control" pkg="ltu_actor_core" type="web_control.py">
-      <param name="~rosbridge_port" value="8090" />
-      <param name="~video_port" value="8091" />
+      <param name="~rosbridge_port" value="$(arg rosbridge_port)" />
+      <param name="~video_port" value="$(arg http_video_port)" />
     </node>
 
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
-      <arg name="port" value="8090"/>
+      <arg name="port" value="$(arg rosbridge_port)"/>
     </include>
     <node name="web_video_server" pkg="web_video_server" type="web_video_server">
-      <param name="~port" value="8091" />
+      <param name="~port" value="$(arg http_video_port)" />
     </node>
   </group>
 </launch>

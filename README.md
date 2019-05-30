@@ -49,3 +49,17 @@ roslaunch ltu_actor_core core.launch
 ```
 
 then view the page <http://localhost:3000/>
+
+## Example Launchfile
+
+```xml
+<launch>
+  <include file="$(ltu_actor_core)/launch/core.launch">
+    <arg name="rosbridge_port" value="8090" />
+    <arg name="http_video_port" value="8091" />
+    <arg name="script_folder" value="$HOME" />
+    <arg name="estop_service" value="/estop/estop" />
+    <arg name="navsatfix_topic" value="/navsatfix" />
+  </include>
+</launch>
+```
