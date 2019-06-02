@@ -4,8 +4,11 @@ R"=====(--[[
   spin_for(int ms)                      delay for milliseconds while also servicing ROS
   send(float linear, float angular)     continuously send cmd commands (forward/reverse & steering)
   send_topic(string topic)              continuously forward a Twist topic as for cmd instead of constants
-  last_Float32(string topic)            get the value of a topic (replace Float32 with any std_msgs type)
-  pub_Float32(string topic, float val)  oppisite of above, publish on a topic
+  dist(double lat, double long)         get the distance in meters from the gps point
+  last_float32(string topic)            get the value of a topic (replace Float32 with any std_msgs type)
+  pub_float32(string topic, float val)  oppisite of above, publish on a topic
+  info_index(int i)                     show an int "index" on the webpage
+  info_distance(float d)                show a float "distance" on the wepbage
   estop()                               trigger an estop
 ]]--
 

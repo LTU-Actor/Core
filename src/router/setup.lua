@@ -28,4 +28,12 @@ function dist(lat, long)
     return c * 6367000 -- meters
 end
 
+function info_distance(d)
+  pub_float32(d, "distance")
+end
+
+function info_index(i)
+  pub_int16(i, "index")
+end
+
 )====="
