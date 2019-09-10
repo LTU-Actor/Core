@@ -25,6 +25,10 @@ module.exports = withCSS({
     estop_resume: process.env.ACTOR_ESTOP_RESUME,
     port_video: process.env.PORT_VIDEO,
     port_rosbridge: process.env.PORT_ROSBRIDGE,
-    ros_ns: process.env.ROS_NS
+    ros_ns: process.env.ROS_NS,
+    video1: process.env.VIDEO1,
+    video2: process.env.VIDEO2,
+    video3: process.env.VIDEO3,
+    video4: process.env.VIDEO4
   }
 })

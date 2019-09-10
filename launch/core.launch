@@ -5,6 +5,11 @@
   <arg name="estop_service" default="/estop/stop" />
   <arg name="navsatfix_topic" default="/navsatfix" />
 
+  <arg name="video1" default="/video1" />
+  <arg name="video2" default="/video2" />
+  <arg name="video3" default="/video3" />
+  <arg name="video4" default="/video4" />
+
   <group ns="core">
     <node name="router" pkg="ltu_actor_core" type="router" output="screen">
       <param name="script_folder" value="$(arg script_folder)" />
@@ -13,15 +18,19 @@
     </node>
 
     <node name="web_control" pkg="ltu_actor_core" type="web_control.py">
-      <param name="~rosbridge_port" value="$(arg rosbridge_port)" />
-      <param name="~video_port" value="$(arg http_video_port)" />
+      <param name="rosbridge_port" value="$(arg rosbridge_port)" />
+      <param name="video_port" value="$(arg http_video_port)" />
+      <param name="video1" value="$(arg video1)" />
+      <param name="video2" value="$(arg video2)" />
+      <param name="video3" value="$(arg video3)" />
+      <param name="video4" value="$(arg video4)" />
     </node>
 
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" >
       <arg name="port" value="$(arg rosbridge_port)"/>
     </include>
     <node name="web_video_server" pkg="web_video_server" type="web_video_server">
-      <param name="~port" value="$(arg http_video_port)" />
+      <param name="port" value="$(arg http_video_port)" />
     </node>
   </group>
 </launch>

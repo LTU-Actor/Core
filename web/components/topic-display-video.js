@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import { Row } from 'reactstrap'
 
 import getConfig from 'next/config'
 const {publicRuntimeConfig} = getConfig();
@@ -6,10 +7,10 @@ const {publicRuntimeConfig} = getConfig();
 class TopicDisplayVideo extends Component {
   render() {
     return (
-      <div>
+      <Row className='m-auto'>
         <span className='font-weight-bold'>{this.props.topic}</span>
         <img src={`http://${this.state.server}/stream?topic=${this.props.topic}&type=ros_compressed`} />
-      </div>
+      </Row>
     )
   }
 

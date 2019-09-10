@@ -5,6 +5,7 @@
 #include <thread>
 #include <tuple>
 #include <unordered_map>
+#include <algorithm>
 
 // file io
 #include <dirent.h>
@@ -105,6 +106,7 @@ get_directory_contents(const std::string &dir)
     while ((dirp = readdir(dp)) != NULL) ret.push_back(std::string(dirp->d_name));
 
     closedir(dp);
+    std::sort(ret.begin(), ret.end());
     return ret;
 }
 
@@ -421,6 +423,10 @@ reset_state()
     // clang-format on
 
     lua.safe_script(route_setup);
+
+    lua.open_libraries(sol::lib::base, sol::lib::package);
+    const std::string package_path = lua["package"]["path"];
+    lua["package"]["path"] = package_path + (!package_path.empty() ? ";" : "") + script_folder + "?.lua";
 }
 
 int
@@ -469,7 +475,9 @@ main(int argc, char **argv)
         }
         catch (const std::exception &err)
         {
-            emergency_stop();
+            std_srvs::Empty e;
+            estop.call(e);
+            ros::spinOnce();
             valid = false;
             ROS_ERROR_STREAM("SOL: " << err.what());
         }
