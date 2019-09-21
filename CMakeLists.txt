@@ -47,9 +47,3 @@ include_directories(${catkin_INCLUDE_DIRS})
 target_include_directories(router PRIVATE ${LUA_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/external/sol2/single)
 target_link_libraries(router ${catkin_LIBRARIES} ${LUA_LIBRARIES})
 add_dependencies(router ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_custom_target(nextjs ALL
-  COMMAND npm install
-  COMMAND npm run build
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/web/"
-)
