@@ -291,7 +291,18 @@ send_topic(std::string topic)
     if (twist_in.getTopic() != topic)
     {
         boost::function<void(const geometry_msgs::Twist &)> callback = [&](const geometry_msgs::Twist &msg) {
-            twist_out.publish(msg);
+            auto tm = lua["_twist_mux"];
+            auto m = msg;
+
+            if (tm.valid())
+            {
+                double d = tm;
+                m.linear.x *= d;
+                m.linear.y *= d;
+                m.linear.z *= d;
+            }
+
+            twist_out.publish(m);
         };
         twist_in = nh->subscribe<geometry_msgs::Twist>(topic, 1, callback);
     }
@@ -317,7 +328,18 @@ send_twist(float linear, float angular)
 void
 loop(const ros::TimerEvent &e)
 {
-    twist_out.publish(cmd_msg);
+    auto tm = lua["_twist_mux"];
+    auto m = cmd_msg;
+
+    if (tm.valid())
+    {
+        double d = tm;
+        m.linear.x *= d;
+        m.linear.y *= d;
+        m.linear.z *= d;
+    }
+
+    twist_out.publish(m);
 }
 
 template <typename T, typename R>

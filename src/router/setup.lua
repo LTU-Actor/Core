@@ -36,4 +36,8 @@ function info_index(i)
   pub_int16(i, "index")
 end
 
+function set_speed_mux(m)
+  _twist_mux = tonumber(m)
+end
+
 )====="
