@@ -37,7 +37,10 @@ function info_index(i)
 end
 
 function set_speed_mux(m)
-  _twist_mux = tonumber(m)
+  _twist_mux_linear = tonumber(m)
+end
+function set_turn_mux(m)
+  _twist_mux_angular = tonumber(m)
 end
 
 )====="

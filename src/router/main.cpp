@@ -290,16 +290,23 @@ send_topic(std::string topic)
     // Only screw with the subscriber if it is different
     if (twist_in.getTopic() != topic)
     {
-        boost::function<void(const geometry_msgs::Twist &)> callback = [&](const geometry_msgs::Twist &msg) {
-            auto tm = lua["_twist_mux"];
-            auto m = msg;
-
-            if (tm.valid())
+        boost::function<void(const geometry_msgs::Twist &)> callback = [&](const geometry_msgs::Twist &msg) {;
+            auto m = msg;;
+            auto tml = lua["_twist_mux_linear"];
+            if (tml.valid())
             {
-                double d = tm;
+                double d = tml;
                 m.linear.x *= d;
                 m.linear.y *= d;
                 m.linear.z *= d;
+            }
+            auto tma = lua["_twist_mux_angular"];
+            if (tma.valid())
+            {
+                double d = tma;
+                m.angular.x *= d;
+                m.angular.y *= d;
+                m.angular.z *= d;
             }
 
             twist_out.publish(m);
@@ -328,15 +335,23 @@ send_twist(float linear, float angular)
 void
 loop(const ros::TimerEvent &e)
 {
-    auto tm = lua["_twist_mux"];
     auto m = cmd_msg;
-
-    if (tm.valid())
+    
+    auto tml = lua["_twist_mux_linear"];
+    if (tml.valid())
     {
-        double d = tm;
+        double d = tml;
         m.linear.x *= d;
         m.linear.y *= d;
         m.linear.z *= d;
+    }
+    auto tma = lua["_twist_mux_angular"];
+    if (tma.valid())
+    {
+        double d = tma;
+        m.angular.x *= d;
+        m.angular.y *= d;
+        m.angular.z *= d;
     }
 
     twist_out.publish(m);
