@@ -1,6 +1,6 @@
 # LTU-Actor Core
 
-This is the main package of the LTU-Actor autonomous vehicle platfor. It has
+This is the main package of the LTU-Actor autonomous vehicle platform. It has
 the other packages in this organizations as submodules to track the version
 used with this version of Core.
 
@@ -13,7 +13,7 @@ significantly newer to run the webpage. This is the official nodejs ppa.
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
 ```
 
-Now is a good time to clone in all the other Actor packages that will be used by the router:
+This command can be used to clone all Actor packages that will be used:
 
 ```sh
 git clone https://github.com/LTU-Actor/Core.git
@@ -72,24 +72,24 @@ then view the page <http://localhost:3000/>
 
 ![](doc/webpage.png)
 
-The above is taken of the system running with one of the recordings from the
-[Vehicle-GEM](https://github.com/LTU-Actor/Vehicle-GEM) package. Scripts build
+The above image is taken from the Actor system running with one of the recordings from the
+[Vehicle-GEM](https://github.com/LTU-Actor/Vehicle-GEM) package. Scripts built
 for the Actor GEM are also commited to the
 [Vehicle-GEM/routes/](https://github.com/LTU-Actor/Vehicle-GEM/tree/master/routes)
 folder.
 
 #### UI Parts:
 
-- Four video topics are displayed as configured in the launchfile arguments
+- Four video topics are displayed as configured in the launch file arguments
 - The "Route HB" or heartbeat toggles true/false when the `heartbeat()` script
   function is called, signaling that the route script is still running. In
   order for this to work, the route script must ensure that the function is
   called within every long loop.
 - Route Index and Route Distance are updated by the `info_*` functions, and are
-  used in routes do display various status numbers (e.g. the distance to the
+  used in routes to display various status numbers (e.g. the distance to the
   next waypoint and the waypoint number).
-- estop state manual shows if the manual estop buttons are pressed. This is
-  assumed to be `std_msgs/Bool` on `/estop/state`, or configured as a lunch
+- estop state manual boolean shows if the manual estop buttons are pressed. This is
+  assumed to be `std_msgs/Bool` on `/estop/state`, or configured as a launch
   file argument.
 - All the following information pertains directly to the selection, control,
   and modification of route scripts:
@@ -98,22 +98,22 @@ folder.
   - The reload arrow will re-sync the browser to the route server incase
     another browser has made a change, or the system has been re-loaded.
   - The dropdown menu will show all files in the configured `routes/` folder.
-    Selecting one will load and begin running that rout, destroying and
+    Selecting one will load and begin running that route, destroying any
     non-saved changes to the current route. Selecting a new route will also
-    trigger the software-estop.
+    trigger a software estop.
   - The save button will send any changes to the textbox to the route server,
     save them to the file, apply the changes, begin running the route, and
-    trigger the software estop.
+    trigger a software estop.
   - The load button will reload the route from the file selected in the
     dropdown menu. Any changes in memory will be destroyed. The file contents
     will be sent back to the browser, the origional route will begin running,
-    and the software estop is triggered.
+    and a software estop is triggered.
   - The apply button will send the contents of the browser to the route server,
-    and run them **without** saving them to disk. The software estop will be
+    and run them **without** saving them to disk. A software estop will be
     triggered.
-  - The estop button will trigger the software estop.
-  - The resume button is the only way to clear the software estop, and allow a
-    non-zero command to be sent to the dbw system.
+  - The estop button will trigger a software estop.
+  - The resume button is the only way to clear a software estop, and allow a
+    non-zero command to be sent to the drive-by-wire system.
 
 ## Example course
 
@@ -123,7 +123,7 @@ An example of the course this router has been used for can be seen below. A vide
 
 #### The route:
 
-The route scripts are written in Lua, and have access to a handful of custom functions/variables bound from the router host. In addition, the host will execute the [setup.lua](./src/router/setup.lua) file when each Lua script's environment is initalized. The lua state is rebuild before before each script is started.
+The route scripts are written in Lua, and have access to a handful of custom functions/variables bound from the router host. In addition, the host will execute the [setup.lua](./src/router/setup.lua) file when each Lua script's environment is initalized. The lua state is rebuilt before each script is started.
 
 The script below is an example of the flexability of the scripting language. It instructs the vehicle to follow a list of waypoints using the [Route-Waypoint](https://github.com/LTU-Actor/Route-Waypoint) package.
 
@@ -160,7 +160,7 @@ end
 The route can be seen doing the following things:
 
 - Maintaining state for the next waypoint with the `wp` variable
-- Instructing the router to forward the vehicle commands from the
+- Instruct the router to forward the vehicle commands from the
   Route-Waypoint output topic with `send_topic("/waypoint/cmd")`. Forwarded
   topics are expected to be `geometry_msgs/Twist` in the standard format
   (linear.x and angular.z for car control). This topic will be forwarded until
@@ -168,7 +168,7 @@ The route can be seen doing the following things:
 - In the loop, the heartbeat function is called to notify the webpage that it
   is still running.
 - `pub_latlong` is a function bound into the Lua state by the router. It
-  published to a subscriber that is known to communicate with the
+  publishs to a subscriber that is known to communicate with the
   Route-Waypoint node. This publisher is created on the first call to this
   function.
 - the `info_*` functions display status information to the webpage. In this
