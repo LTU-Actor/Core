@@ -6,13 +6,13 @@ _altitude = 0
 
 function spin_once()
     if __spin_once() then
-        error("reloading script")
+        error("INFO: Reloading script (This is not an error)")
     end
 end
 
 function spin_for(ms)
     if __spin_for(ms) then
-        error("reloading script")
+        error("INFO: Reloading script (This is not an error)")
     end
 end
 
