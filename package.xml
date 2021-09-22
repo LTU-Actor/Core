@@ -17,7 +17,7 @@
   <depend>lua5.2-dev</depend> <!-- No non-dev version in rosdep -->
 
   <exec_depend>python-psutil</exec_depend>
-  <exec_depend>python-rospkg</exec_depend>
+  <exec_depend>python3-rospkg</exec_depend>
   <exec_depend>web_video_server</exec_depend>
   <exec_depend>rosbridge_server</exec_depend>
 
