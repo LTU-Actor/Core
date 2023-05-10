@@ -20,6 +20,8 @@ module.exports = withCSS({
     return config
   },
   publicRuntimeConfig: {
+    gps_position: process.env.ACTOR_GPS_POSITION_TOPIC,
+    gps_heading: process.env.ACTOR_GPS_HEADING_TOPIC,
     estop_topic: process.env.ACTOR_ESTOP_TOPIC,
     estop_stop: process.env.ACTOR_ESTOP_STOP,
     estop_resume: process.env.ACTOR_ESTOP_RESUME,

@@ -5,6 +5,7 @@ import roslib from 'roslib'
 
 class TopicDisplay extends Component {
   render() {
+    console.log(this.props)
     return (
       <div>
         <span className="font-weight-bold">{this.props.name}</span>

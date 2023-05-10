@@ -2,6 +2,9 @@ import TopicDisplay from 'components/topic-display.js'
 import TopicDisplayVideo from 'components/topic-display-video.js'
 import RouteSelect from 'components/route-select.js'
 import EstopControl from 'components/estop-control.js'
+import TopicGpsPosition from 'components/gps-position-display.js'
+import TopicGpsNed from 'components/gps-ned-display.js'
+import TopicGpsHeading from 'components/gps-heading-display.js'
 import getConfig from 'next/config'
 import Link from 'next/link'
 import {Col, Container, Row} from 'reactstrap'
@@ -17,6 +20,8 @@ export default () => (
   <Container>
     <Row>
       <Col>
+        <TopicGpsPosition name="GPS position" topic={publicRuntimeConfig.gps_position} type="sensor_msgs/NavSatFix" />
+        <TopicGpsNed name="ned velocity" topic={publicRuntimeConfig.gps_heading} type="geometry_msgs/Vector3Stamped" />
         <Row>
           <Col xs="3"><TopicDisplayVideo topic={`${video1}`} /></Col>
           <Col xs="3"><TopicDisplayVideo topic={`${video2}`} /></Col>
