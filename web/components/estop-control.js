@@ -7,6 +7,7 @@ import roslib from 'roslib'
 const {publicRuntimeConfig} = getConfig();
 const estop_stop = publicRuntimeConfig.estop_stop
 const estop_resume = publicRuntimeConfig.estop_resume
+const vehicle_enable = publicRuntimeConfig.vehicle_enable
 
 
 class EstopControl extends Component {
@@ -16,6 +17,7 @@ class EstopControl extends Component {
         <Row>
           <Button className='col-auto mr-1' color='danger' onClick={this.stop}>eStop</Button>
           <Button className='col-auto mr-1' color='success' onClick={this.resume}>Resume</Button>
+          <Button className='col-auto mr-1' color='primary' onClick={this.enable_vehicle}>Enable DBW</Button>
         </Row>
       </div>
     )
@@ -26,6 +28,7 @@ class EstopControl extends Component {
 
     this.stop = this.stop.bind(this)
     this.resume = this.resume.bind(this)
+    this.enable_vehicle = this.enable_vehicle.bind(this)
   }
 
   componentDidMount() {
@@ -40,6 +43,12 @@ class EstopControl extends Component {
       name: estop_resume,
       serviceType: 'Trigger'
     })
+
+    this.enableVehiclePub = new roslib.Topic({
+      ros: ros,
+      name: vehicle_enable,
+      messageType: 'std_msgs/Empty'
+    })
   }
 
   stop() {
@@ -53,9 +62,16 @@ class EstopControl extends Component {
     })
   }
 
+  enable_vehicle() {
+    var emptyMsg = new roslib.Message({})
+    this.enableVehiclePub.publish(emptyMsg)
+    console.log(emptyMsg)
+  }
+
   componentWillUnmount() {
     this.stopSrv = null
     this.resumeSrv = null
+    this.enableVehiclePub = null
   }
 }
 

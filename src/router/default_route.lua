@@ -9,6 +9,7 @@ R"=====(--[[
   pub_float32(string topic, float val)  oppisite of above, publish on a topic
   info_index(int i)                     show an int "index" on the webpage
   info_distance(float d)                show a float "distance" on the wepbage
+  vehicle_enable()                      enable the drive-by-wire
   estop()                               trigger an estop
 ]]--
 

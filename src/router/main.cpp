@@ -23,6 +23,7 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <std_srvs/Empty.h>
 
+#include <std_msgs/Empty.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Byte.h>
 #include <std_msgs/Char.h>
@@ -64,6 +65,7 @@ ros::ServiceServer load_route;
 ros::ServiceServer save_route;
 ros::ServiceServer set_temporary_route;
 ros::ServiceClient estop;
+ros::Publisher vehicle_enable;
 ros::Subscriber navsatfix;
 
 // main timer
@@ -248,6 +250,13 @@ create_subs_n_pubs()
         throw std::runtime_error("Must specify estop_service!");
     }
 
+    std::string vehicle_enable_service;
+    if (!nh->getParam("vehicle_enable_service", vehicle_enable_service))
+    {
+        ROS_ERROR_STREAM("Must specify vehicle_enable_service!");
+        throw std::runtime_error("Must specify vehicle_enable_service!");
+    }
+
     std::string navsatfix_topic;
     if (!nh->getParam("navsatfix_topic", navsatfix_topic))
     {
@@ -257,6 +266,7 @@ create_subs_n_pubs()
 
     twist_out = nh->advertise<geometry_msgs::Twist>("cmd", 0);
     hb = nh->advertise<std_msgs::Bool>("heartbeat", 0);
+    vehicle_enable = nh->advertise<std_msgs::Empty>(vehicle_enable_service, 0);
     get_current_route = nh->advertiseService("get_current_route", &get_current_route_cb);
     get_route_list = nh->advertiseService("get_route_list", &get_route_list_cb);
     load_route = nh->advertiseService("load_route", &load_route_cb);
@@ -279,6 +289,13 @@ emergency_stop(void)
 {
     static std_srvs::Empty e;
     estop.call(e);
+}
+
+void
+vehicle_enablement(void)
+{
+    static std_msgs::Empty e;
+    vehicle_enable.publish(e);
 }
 
 void
@@ -419,6 +436,7 @@ reset_state()
 
     lua.set_function("heartbeat", &heartbeat);
     lua.set_function("estop", &emergency_stop);
+    lua.set_function("vehicle_enable", &vehicle_enablement);
     lua.set_function("send_topic", &send_topic);
     lua.set_function("send", &send_twist);
 

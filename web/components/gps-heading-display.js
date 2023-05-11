@@ -5,18 +5,8 @@ import roslib from 'roslib'
 
 class TopicGpsHeading extends Component {
   render() {
-    // TODO: Head to this
-    // const compassTitle = 'Compass:'
-    // const compassValue = compassStringFromAngle(this.props.headingAngle)
-    // const headingTitle = 'Heading:'
-    // const headingValue = this.props.headingAngle
-
-    // Start here
-    console.log(this.state)
-    const xTitle = 'x:'
-    const yTitle = 'y:'
-    const zTitle = 'z:'
-    const wTitle = 'w:'
+    const compassTitle = 'Compass:'
+    const headingTitle = 'Heading:'
     return (
         <Container>
         <Row xs="3">
@@ -25,32 +15,18 @@ class TopicGpsHeading extends Component {
             </Col>
             <Col xs="2">
                 <div>
-                    <span className="font-weight-bold">{xTitle}</span>
+                    <span className="font-weight-bold">{compassTitle}</span>
                     &nbsp; &nbsp;
-                    <span className="font-italic">{this.state.x}</span>
+                    <span className="font-italic">{this.state.compassString}</span>
                 </div>
             </Col>
             <Col xs="2">
                 <div>
-                    <span className="font-weight-bold">{yTitle}</span>
+                    <span className="font-weight-bold">{headingTitle}</span>
                     &nbsp; &nbsp;
-                    <span className="font-italic">{this.state.y}</span>
+                    <span className="font-italic">{this.state.headingAngle}</span>
                 </div>
             </Col>
-            <Col xs="2">
-                <div>
-                    <span className="font-weight-bold">{zTitle}</span>
-                    &nbsp; &nbsp;
-                    <span className="font-italic">{this.state.z}</span>
-                </div>
-            </Col>
-            {/* <Col xs="2">
-                <div>
-                    <span className="font-weight-bold">{wTitle}</span>
-                    &nbsp; &nbsp;
-                    <span className="font-italic">{this.state.w}</span>
-                </div>
-            </Col> */}
         </Row>
         </Container>
     )
@@ -71,21 +47,16 @@ class TopicGpsHeading extends Component {
 
     var that = this
     this.sub.subscribe(function(msg) {
-        console.log(msg)
-        console.log(msg.vector)
         var vector = msg.vector
-        console.log(vector)
         console.log(vector.x)
         console.log(vector.y)
         console.log(vector.z)
-        // headingAngle = headingAngleFromNedVector(vector)
+        headingAngle = headingAngleFromNedVector(vector)
+        compassString = compassStringFromAngle(headingAngle)
         that.setState(
           {
-            x: String(vector.x),
-            y: String(vector.y),
-            z: String(vector.z),
-            // w: String(poseOrientation.w),
-            // headingAngle: headingAngle
+            headingAngle: headingAngle,
+            compassString: compassString
           })
       })
   }
@@ -118,9 +89,17 @@ class TopicGpsHeading extends Component {
     }
   }
 
-  headingAngleFromPoseOrientation(poseOrientation) {
-    // TODO: translation poseOrientation to compass heading
-    return 0
+  headingAngleFromPoseOrientation(nedVector) {
+    const north = nedVector.x
+    const east = nedVector.y
+    
+    // AU white paper - section 4.3 ECEF Coordinates and Heading-Pitch-Roll Conversion
+    // https://webarchive.nla.gov.au/awa/20060808232012/http://pandora.nla.gov.au/pan/24764/20060809-0000/DSTO-TN-0640.pdf
+    var degrees = Math.atan2(east, north)
+
+    // degrees = (degrees + 360.0) % 360.0
+
+    return degrees
   }
 }
 

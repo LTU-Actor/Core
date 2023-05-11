@@ -6,34 +6,29 @@ import roslib from 'roslib'
 class TopicGpsPosition extends Component {
   render() 
   {
-    const latitudeTitle = 'lat:'
-    const longitudeTitle = 'lon:'
-    const altitudeTitle = 'alt:'
+    const comma = ','
+    const leftBracket = '{ '
+    const rightBracket = ' }'
+    const latitudeTitle = 'lat = '
+    const longitudeTitle = 'lon = '
     return (
       <Container>
         <Row xs="3">
           <Col xs="2">
             <h5 className='font-weight-bold'>{this.props.name}</h5>
           </Col>
-          <Col xs="2">
+          <Col xs="4">
               <div>
-                  <span className="font-weight-bold">{latitudeTitle}</span>
+                  <span className="font-weight-bold">{leftBracket}{latitudeTitle}</span>
                   &nbsp; &nbsp;
-                  <span className="font-italic">{this.state.lat}</span>
+                  <span className="font-italic">{this.state.lat}{comma}</span>
               </div>
           </Col>
-          <Col xs="2">
+          <Col xs="4">
               <div>
                   <span className="font-weight-bold">{longitudeTitle}</span>
                   &nbsp; &nbsp;
-                  <span className="font-italic">{this.state.long}</span>
-              </div>
-          </Col>
-          <Col xs="2">
-              <div>
-                  <span className="font-weight-bold">{altitudeTitle}</span>
-                  &nbsp; &nbsp;
-                  <span className="font-italic">{this.state.alt}</span>
+                  <span className="font-italic">{this.state.lon}{rightBracket}</span>
               </div>
           </Col>
         </Row>
@@ -59,8 +54,7 @@ class TopicGpsPosition extends Component {
       that.setState(
         {
           lat: String(msg.latitude),
-          long: String(msg.longitude),
-          alt: String(msg.altitude)
+          lon: String(msg.longitude)
         })
     })
   }

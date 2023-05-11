@@ -58,6 +58,7 @@ then view the page <http://localhost:3000/>
     <arg name="http_video_port" value="8091" />
     <arg name="script_folder" value="$HOME" />
     <arg name="estop_service" value="/estop/estop" />
+    <arg name="vehicle_enable_service" default="/vehicle/enable" />
     <arg name="navsatfix_topic" value="/navsatfix" />
 
     <arg name="video1" default="/video1" />
@@ -197,6 +198,7 @@ Many of the custom functions and variabled can be seen in the comment at the top
   pub_float32(string topic, float val)  oppisite of above, publish on a topic
   info_index(int i)                     show an int "index" on the webpage
   info_distance(float d)                show a float "distance" on the wepbage
+  vehicle_enable()                      enable the drive-by-wire
   estop()                               trigger an estop
 ]]--
 
