@@ -23,28 +23,34 @@ export default () => (
         <Row>
           <Col>
             <Container>
-              <Col>{'Blob'}
-                <Row xs="2">
-                  <TopicDisplayVideo topic={`${video1}`} />
-                </Row>
-                <Row xs="2">
-                  <TopicDisplayVideo topic={`${video2}`} />
-                </Row>
-              </Col>
-              <Col>
-                <Row xs="2">
-                  <TopicDisplayVideo topic={`${video4}`} />
-                </Row>
-              </Col>
+              <Row>{'Blob'}</Row>
+              <Row>
+                <Col>
+                  <Row xs="1">
+                    <TopicDisplayVideo topic={`${video1}`} />
+                  </Row>
+                  <Row xs="1">
+                    <TopicDisplayVideo topic={`${video2}`} />
+                  </Row>
+                </Col>
+                <Col>
+                  <Row xs="1">
+                    <TopicDisplayVideo topic={`${video4}`} />
+                  </Row>
+                </Col>
+              </Row>
             </Container>
           </Col>
           <Col>
             <Container>
-              <Col>{'Stop Sign Detect'}
-                <Row xs="2">
-                  <TopicDisplayVideo topic={`${video3}`} />
-                </Row>
+            <Row>{'Stop Sign Detect'}</Row>
+              <Row>
+                <Col>
+                  <Row xs="2">
+                    <TopicDisplayVideo topic={`${video3}`} />
+                  </Row>
                 </Col>
+              </Row>
             </Container>
           </Col>
         </Row>
