@@ -13,9 +13,6 @@ class RouteSelect extends Component {
     return (
       <div>
         <Row>
-          <textarea className="col border rounded bg-light mb-1" value={this.state.route} style={{height: "400px", fontFamily: 'monospace'}} onChange={this.routeOnChange} />
-        </Row>
-        <Row>
           <Button className='col-auto' onClick={this.refreshRoutes}>&#8635;</Button>
           <select className="col border m-1 rounded bg-light" onChange={this.fileNameOnChange} value={this.state.fileName}>
             {this.state.routeFiles.map(function(listValue, i){
@@ -23,8 +20,15 @@ class RouteSelect extends Component {
             })}
           </select>
           <Button className='col-auto mr-1' onClick={this.save}>Save</Button>
-          <Button className='col-auto mr-1' color='primary' onClick={this.load}>Load</Button>
+
+          {/* commenting out the 'Load' button, as the dropdown loads the necessary file, and it only causes confusion */}
+          {/* perhaps, if the file structure where complicated, it would be helpful... or the files had simplier names */}
+          {/* <Button className='col-auto mr-1' color='primary' onClick={this.load}>Load</Button> */}
+
           <Button className='col-auto mr-1' color='success' onClick={this.apply}>Apply</Button>
+        </Row>
+        <Row>
+          <textarea className="col border rounded bg-light mb-1" value={this.state.route} style={{height: "400px", fontFamily: 'monospace'}} onChange={this.routeOnChange} />
         </Row>
       </div>
     )

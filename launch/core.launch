@@ -3,6 +3,7 @@
   <arg name="http_video_port" default="8091" />
   <arg name="script_folder" default="$HOME" />
   <arg name="estop_service" default="/estop/stop" />
+  <arg name="vehicle_enable_service" default="/vehicle/enable" />
   <arg name="navsatfix_topic" default="/navsatfix" />
 
   <arg name="video1" default="/video1" />
@@ -14,6 +15,7 @@
     <node name="router" pkg="ltu_actor_core" type="router" output="screen">
       <param name="script_folder" value="$(arg script_folder)" />
       <param name="estop_service" value="$(arg estop_service)"/>
+      <param name="vehicle_enable_service" value="$(arg vehicle_enable_service)"/>
       <param name="navsatfix_topic" value="$(arg navsatfix_topic)"/>
     </node>
 

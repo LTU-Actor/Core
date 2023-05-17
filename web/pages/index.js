@@ -20,21 +20,46 @@ export default () => (
   <Container>
     <Row>
       <Col>
-        <TopicGpsPosition name="GPS position" topic={publicRuntimeConfig.gps_position} type="sensor_msgs/NavSatFix" />
-        <TopicGpsNed name="ned velocity" topic={publicRuntimeConfig.gps_heading} type="geometry_msgs/Vector3Stamped" />
         <Row>
-          <Col xs="3"><TopicDisplayVideo topic={`${video1}`} /></Col>
-          <Col xs="3"><TopicDisplayVideo topic={`${video2}`} /></Col>
-          <Col xs="3"><TopicDisplayVideo topic={`${video3}`} /></Col>
-          <Col xs="3"><TopicDisplayVideo topic={`${video4}`} /></Col>
+          <Col>
+            <Container>
+              <Col>{'Blob'}
+                <Row xs="2">
+                  <TopicDisplayVideo topic={`${video1}`} />
+                </Row>
+                <Row xs="2">
+                  <TopicDisplayVideo topic={`${video2}`} />
+                </Row>
+              </Col>
+              <Col>
+                <Row xs="2">
+                  <TopicDisplayVideo topic={`${video4}`} />
+                </Row>
+              </Col>
+            </Container>
+          </Col>
+          <Col>
+            <Container>
+              <Col>{'Stop Sign Detect'}
+                <Row xs="2">
+                  <TopicDisplayVideo topic={`${video3}`} />
+                </Row>
+                </Col>
+            </Container>
+          </Col>
         </Row>
 
+        <TopicGpsPosition name="GPS position" topic={publicRuntimeConfig.gps_position} type="sensor_msgs/NavSatFix" />
+        {/* <TopicGpsNed name="ned velocity" topic={publicRuntimeConfig.gps_ned} type="geometry_msgs/Vector3Stamped" /> */}
+        {/* <TopicGpsHeading name="" topic={publicRuntimeConfig.gps_ned} type="geometry_msgs/Vector3Stamped" /> */}
+        
         <TopicDisplay name="Route HB:" topic={`${ros_ns}router/heartbeat`} type="std_msgs/Bool" />
         <TopicDisplay name="Route Index:" topic={`${ros_ns}router/index`} type="std_msgs/Int16" />
         <TopicDisplay name="Route Distance:" topic={`${ros_ns}router/distance`} type="std_msgs/Float32" />
         <TopicDisplay name="estop state manual" topic={publicRuntimeConfig.estop_topic} type="std_msgs/Bool" />
-        <RouteSelect />
+        
         <EstopControl />
+        <RouteSelect />
       </Col>
     </Row>
   </Container>
