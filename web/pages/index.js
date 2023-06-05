@@ -59,11 +59,21 @@ export default () => (
         {/* <TopicGpsNed name="ned velocity" topic={publicRuntimeConfig.gps_ned} type="geometry_msgs/Vector3Stamped" /> */}
         {/* <TopicGpsHeading name="" topic={publicRuntimeConfig.gps_ned} type="geometry_msgs/Vector3Stamped" /> */}
         
-        <TopicDisplay name="Route HB:" topic={`${ros_ns}router/heartbeat`} type="std_msgs/Bool" />
-        <TopicDisplay name="Route Index:" topic={`${ros_ns}router/index`} type="std_msgs/Int16" />
-        <TopicDisplay name="Route Distance:" topic={`${ros_ns}router/distance`} type="std_msgs/Float32" />
-        <TopicDisplay name="estop state manual" topic={publicRuntimeConfig.estop_topic} type="std_msgs/Bool" />
-        
+        <Container>
+         <Row>
+          <Col>
+            <TopicDisplay name="Route HB:" topic={`${ros_ns}router/heartbeat`} type="std_msgs/Bool" />
+            <TopicDisplay name="Route Index:" topic={`${ros_ns}router/index`} type="std_msgs/Int16" />
+            <TopicDisplay name="Route Distance:" topic={`${ros_ns}router/distance`} type="std_msgs/Float32" />
+            <TopicDisplay name="estop state manual" topic={publicRuntimeConfig.estop_topic} type="std_msgs/Bool" />
+          </Col>
+          <Col>
+            <TopicDisplay name="Front Closest:" topic={publicRuntimeConfig.lidar_front_closest} type="std_msgs/Float64" />
+            <TopicDisplay name="Right Closest:" topic={publicRuntimeConfig.lidar_right_closest} type="std_msgs/Float64" />
+            <TopicDisplay name="Left Closest:" topic={publicRuntimeConfig.lidar_left_closest} type="std_msgs/Float64" />
+          </Col>
+        </Row>
+        </Container>
         <EstopControl />
         <RouteSelect />
       </Col>

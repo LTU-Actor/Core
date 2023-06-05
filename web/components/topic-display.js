@@ -31,6 +31,9 @@ class TopicDisplay extends Component {
       messageType: that.props.type
     })
 
+    // TODO: round float messages to limit trailing decimals
+    //if (messageType == "std_msgs/Float64" ||  
+
     var that = this
     this.sub.subscribe(function(msg) {
       that.setState({data: String(msg.data)})
