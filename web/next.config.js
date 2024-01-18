@@ -32,6 +32,9 @@ module.exports = withCSS({
     video1: process.env.VIDEO1,
     video2: process.env.VIDEO2,
     video3: process.env.VIDEO3,
-    video4: process.env.VIDEO4
+    video4: process.env.VIDEO4,
+    lidar_front_closest: process.env.LIDAR_FRONT_CLOSEST,
+    lidar_right_closest: process.env.LIDAR_RIGHT_CLOSEST,
+    lidar_left_closest: process.env.LIDAR_LEFT_CLOSEST,
   }
 })
