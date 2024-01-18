@@ -45,8 +45,8 @@ export default () => (
             <Container>
             <Row>{'Stop Sign Detect'}</Row>
               <Row>
-                <Col>
-                  <Row xs="2">
+                <Col xs="3">
+                  <Row xs="1">
                     <TopicDisplayVideo topic={`${video3}`} />
                   </Row>
                 </Col>
